@@ -38,10 +38,10 @@ def update_student_result(nickname: str, a_count: int, rt_score: int, bit_type: 
 
 # --- 로직 함수 ---
 def calculate_bit(active_a: int, rt_score: int) -> str:
-    # Pompian(2008) 기준: a가 많으면(6개 이상) Active
+    # Pompian(2008) 기준: a가 많으면(6개 이상) Active [cite: 583]
     is_active = active_a >= 6
     
-    # Grable & Lytton(1999) 기준 등급
+    # Grable & Lytton(1999) 기준 등급 [cite: 897, 900-901]
     if rt_score <= 22:
         rt_level = "Low"
     elif rt_score <= 32:
@@ -49,7 +49,7 @@ def calculate_bit(active_a: int, rt_score: int) -> str:
     else:
         rt_level = "High"
     
-    # 최종 매칭
+    # 최종 매칭 [cite: 580-583]
     if not is_active:
         return "보존가 (Passive Preserver)" if rt_level == "Low" else "추종자 (Friendly Follower)"
     else:
@@ -98,13 +98,20 @@ if role == "교수용(관리자)":
         
         is_started = get_experiment_state()
         
-        if st.button("🚀 실험 시작", use_container_width=True, disabled=is_started):
-            update_experiment_state(True)
-            st.rerun()
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("🚀 실험 시작", use_container_width=True, disabled=is_started):
+                update_experiment_state(True)
+                st.rerun()
+        with col2:
+            # 다음 테스트나 수업을 위해 실험을 대기 상태로 되돌리는 초기화 버튼
+            if st.button("🔄 실험 초기화 (대기 상태로)", use_container_width=True, disabled=not is_started):
+                update_experiment_state(False)
+                st.rerun()
 
         st.divider()
         
-        if st.button("🔄 현황 새로고침"):
+        if st.button("📊 현황 새로고침"):
             res = supabase.table("student_investor_results").select("*").order("created_at").execute().data
             total_students = len(res)
             finished_students = [r for r in res if r['is_finished']]
@@ -112,7 +119,7 @@ if role == "교수용(관리자)":
             st.metric("참여 인원", f"{total_students}명", f"완료: {len(finished_students)}명")
             
             if finished_students:
-                st.subheader("📊 학생별 상세 결과")
+                st.subheader("📋 학생별 상세 결과")
                 display_data = []
                 for r in finished_students:
                     display_data.append({
@@ -142,12 +149,17 @@ else:
             
         is_started = get_experiment_state()
         
+        # 1. 교수님이 시작을 안 누른 대기 상태 (질문 폼 노출 안 됨)
         if not is_started:
             st.warning(f"안녕하세요 {nickname}님! 교수님이 실험을 시작하실 때까지 대기해 주세요.")
             if st.button("🚀 교수님이 '시작'하셨다고 하면 누르세요!"):
                 st.rerun()
+                
+        # 2. 이미 제출 완료한 학생 화면 (질문 폼 노출 안 됨)
         elif student['is_finished']:
             st.success("진단이 완료되었습니다.")
+            
+        # 3. 교수님이 시작을 눌렀고, 제출 전인 학생 화면 (질문 폼 노출)
         else:
             with st.form("investor_test"):
                 st.subheader("Part 1.")
