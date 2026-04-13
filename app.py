@@ -41,7 +41,7 @@ def calculate_bit(active_a: int, rt_score: int) -> str:
     # Pompian(2008) 기준: a가 많으면(6개 이상) Active
     is_active = active_a >= 6
     
-    # Grable & Lytton(1999) 기준 등급
+    # Grable & Lytton(1999) 기준 등급 [cite: 897, 900-901]
     if rt_score <= 22:
         rt_level = "Low"
     elif rt_score <= 32:
@@ -49,7 +49,7 @@ def calculate_bit(active_a: int, rt_score: int) -> str:
     else:
         rt_level = "High"
     
-    # 최종 매칭
+    # 최종 매칭 [cite: 580-583]
     if not is_active:
         return "보존가 (Passive Preserver)" if rt_level == "Low" else "추종자 (Friendly Follower)"
     else:
@@ -182,34 +182,27 @@ else: # 학생용 화면
             st.write(f"**{current_q['part']}**")
             choice = st.radio(current_q['q'], list(current_q['options'].keys()), index=None, key=f"q_{q_idx}")
 
-            col_prev, col_next = st.columns(2)
-            with col_next:
-                if q_idx < total_q - 1:
-                    if st.button("다음 ➡️", use_container_width=True):
-                        if choice is not None:
-                            st.session_state.answers[current_q['id']] = current_q['options'][choice]
-                            st.session_state.q_idx += 1
-                            st.rerun()
-                        else:
-                            st.error("답변을 선택해 주세요.")
-                else:
-                    if st.button("제출하기 ✅", use_container_width=True):
-                        if choice is not None:
-                            # 마지막 문항 저장 및 최종 계산
-                            st.session_state.answers[current_q['id']] = current_q['options'][choice]
-                            
-                            # 점수 합산 (함정 문항인 'trap' 제외)
-                            a_count = sum([v for k, v in st.session_state.answers.items() if k.startswith('p')])
-                            rt_score = sum([v for k, v in st.session_state.answers.items() if k.startswith('r')])
-                            
-                            final_bit = calculate_bit(a_count, rt_score)
-                            update_student_result(nickname, a_count, rt_score, final_bit)
-                            st.rerun()
-                        else:
-                            st.error("마지막 답변을 선택해 주세요.")
-            
-            with col_prev:
-                if q_idx > 0:
-                    if st.button("⬅️ 이전", use_container_width=True):
-                        st.session_state.q_idx -= 1
+            # 이전 버튼 삭제, 다음 및 제출 버튼만 렌더링
+            if q_idx < total_q - 1:
+                if st.button("다음 ➡️", use_container_width=True):
+                    if choice is not None:
+                        st.session_state.answers[current_q['id']] = current_q['options'][choice]
+                        st.session_state.q_idx += 1
                         st.rerun()
+                    else:
+                        st.error("답변을 선택해 주세요.")
+            else:
+                if st.button("제출하기 ✅", use_container_width=True):
+                    if choice is not None:
+                        # 마지막 문항 저장 및 최종 계산
+                        st.session_state.answers[current_q['id']] = current_q['options'][choice]
+                        
+                        # 점수 합산 (함정 문항인 'trap' 제외)
+                        a_count = sum([v for k, v in st.session_state.answers.items() if k.startswith('p')])
+                        rt_score = sum([v for k, v in st.session_state.answers.items() if k.startswith('r')])
+                        
+                        final_bit = calculate_bit(a_count, rt_score)
+                        update_student_result(nickname, a_count, rt_score, final_bit)
+                        st.rerun()
+                    else:
+                        st.error("마지막 답변을 선택해 주세요.")
